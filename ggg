@@ -1,0 +1,140 @@
+test setup failed
+self = <ftputil.host.FTPHost object at 0x0000025F8D9AFDF0>
+
+    def _make_session(self):
+        """
+        Return a new session object according to the current state of this
+        `FTPHost` instance.
+        """
+        # Don't modify original attributes below.
+        args = self._args[:]
+        kwargs = self._kwargs.copy()
+        # If a session factory has been given on the instantiation of this
+        # `FTPHost` object, use the same factory for this `FTPHost` object's
+        # child sessions.
+        factory = kwargs.pop("session_factory", default_session_factory)
+        with ftputil.error.ftplib_error_to_ftp_os_error:
+>           session = factory(*args, **kwargs)
+
+..\env1\lib\site-packages\ftputil\host.py:165:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <ftplib.FTP object at 0x0000025F8D9AFC70>, host = 'localhost'
+user = 'mantis', passwd = 'mantis', acct = ''
+timeout = <object object at 0x0000025F8A1E4ED0>, source_address = None
+
+    def __init__(self, host='', user='', passwd='', acct='',
+                 timeout=_GLOBAL_DEFAULT_TIMEOUT, source_address=None):
+        self.source_address = source_address
+        self.timeout = timeout
+        if host:
+            self.connect(host)
+            if user:
+>               self.login(user, passwd, acct)
+
+..\..\AppData\Local\Programs\Python\Python38\lib\ftplib.py:121:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <ftplib.FTP object at 0x0000025F8D9AFC70>, user = 'mantis'
+passwd = 'mantis', acct = ''
+
+    def login(self, user = '', passwd = '', acct = ''):
+        '''Login, default anonymous.'''
+        if not user:
+            user = 'anonymous'
+        if not passwd:
+            passwd = ''
+        if not acct:
+            acct = ''
+        if user == 'anonymous' and passwd in {'', '-'}:
+            # If there is no anonymous ftp password specified
+            # then we'll just use anonymous@
+            # We don't send any other thing because:
+            # - We want to remain anonymous
+            # - We want to stop SPAM
+            # - We don't want to let ftp sites to discriminate by the user,
+            #   host or country.
+            passwd = passwd + 'anonymous@'
+        resp = self.sendcmd('USER ' + user)
+        if resp[0] == '3':
+>           resp = self.sendcmd('PASS ' + passwd)
+
+..\..\AppData\Local\Programs\Python\Python38\lib\ftplib.py:410:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <ftplib.FTP object at 0x0000025F8D9AFC70>, cmd = 'PASS mantis'
+
+    def sendcmd(self, cmd):
+        '''Send a command and return the response.'''
+        self.putcmd(cmd)
+>       return self.getresp()
+
+..\..\AppData\Local\Programs\Python\Python38\lib\ftplib.py:277:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <ftplib.FTP object at 0x0000025F8D9AFC70>
+
+    def getresp(self):
+        resp = self.getmultiline()
+        if self.debugging:
+            print('*resp*', self.sanitize(resp))
+        self.lastresp = resp[:3]
+        c = resp[:1]
+        if c in {'1', '2', '3'}:
+            return resp
+        if c == '4':
+            raise error_temp(resp)
+        if c == '5':
+>           raise error_perm(resp)
+E           ftplib.error_perm: 530 Login incorrect.
+
+..\..\AppData\Local\Programs\Python\Python38\lib\ftplib.py:250: error_perm
+
+The above exception was the direct cause of the following exception:
+
+request = <SubRequest 'configure_server' for <Function test_login>>
+config = {'ftp': {'host': 'localhost', 'password': 'mantis', 'username': 'mantis'}, 'web': {'baseUrl': 'http://localhost/mantisbt-1.2.20/'}, 'webadmin': {'password': 'root', 'username': 'administrator'}}
+
+    @pytest.fixture(scope="session", autouse=True)
+    def configure_server(request, config):
+>       install_server_configuration(config['ftp']['host'], config['ftp']['username'], config['ftp']['password'])
+
+..\conftest.py:35:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\conftest.py:41: in install_server_configuration
+    with ftputil.FTPHost(host, username, password) as remote:
+..\env1\lib\site-packages\ftputil\host.py:103: in __init__
+    self._session = self._make_session()
+..\env1\lib\site-packages\ftputil\host.py:170: in _make_session
+    self._encoding = session.encoding
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <ftputil.error.FtplibErrorToFTPOSError object at 0x0000025F8D7257F0>
+exc_type = <class 'ftplib.error_perm'>
+exc_value = error_perm('530 Login incorrect.')
+traceback = <traceback object at 0x0000025F8D9FAE80>
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if exc_type is None:
+            # No exception
+            return
+        if isinstance(exc_value, ftplib.error_temp):
+            raise TemporaryError(
+                *exc_value.args, original_error=exc_value
+            ) from exc_value
+        elif isinstance(exc_value, ftplib.error_perm):
+            # If `exc_value.args[0]` is present, assume it's a byte or unicode
+            # string.
+            if exc_value.args and ftputil.tool.as_str(
+                exc_value.args[0], ftputil.path_encoding.DEFAULT_ENCODING
+            ).startswith("502"):
+                raise CommandNotImplementedError(
+                    *exc_value.args, original_error=exc_value
+                ) from exc_value
+            else:
+>               raise PermanentError(
+                    *exc_value.args, original_error=exc_value
+E                   ftputil.error.PermanentError: 530 Login incorrect.
+E                   Debugging info: ftputil 5.1.0, Python 3.8.10 (win32)
+
+..\env1\lib\site-packages\ftputil\error.py:195: PermanentError
